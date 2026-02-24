@@ -8,10 +8,5 @@
   "homepage": "https://github.com/daehyeonxyz/figma-ppt-plugin",
   "repository": "https://github.com/daehyeonxyz/figma-ppt-plugin",
   "license": "MIT",
-  "keywords": ["figma", "presentation", "slides", "frontend", "design-tokens", "MCP"],
-  "recommendedPlugins": [
-    "anthropics/skills#frontend-design",
-    "vercel-labs/agent-skills#web-design-guidelines",
-    "nextlevelbuilder/ui-ux-pro-max-skill#ui-ux-pro-max"
-  ]
+  "keywords": ["figma", "presentation", "slides", "frontend", "design-tokens", "MCP"]
 }
