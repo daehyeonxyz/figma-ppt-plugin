@@ -8,6 +8,9 @@ venv/
 figma-slides-*.js
 style-guide.json
 slides-plan.json
+slide-output/
+_test_output/
+_test_plan.json
 
 # OS
 .DS_Store

@@ -1,46 +1,41 @@
 ---
 name: figma-ppt
-description: Create a production-grade presentation in Figma, treating each 1920×1080 slide as a web section (hero, content, stats, quote, etc.). Extracts design tokens from Figma, plans slide structure, and generates Figma Plugin JavaScript ready to paste into the Figma Developer Console. Use for "make a presentation", "create slides", "build a deck", "generate Figma presentation".
-disable-model-invocation: true
-allowed-tools: Read, Write, Bash
+description: Generate a production-grade Figma presentation by building a real 1920×1080 HTML/CSS website and capturing each slide into editable Figma frames via the Figma Dev Mode MCP. Use for "make a presentation", "create slides", "build a deck", "generate Figma presentation", "슬라이드 만들어줘", "프레젠테이션 생성".
+allowed-tools: Read, Write, Bash, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_design_context, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_variable_defs, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_metadata, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__generate_diagram
 ---
 
 # figma-ppt Skill
 
-Generate a complete Figma presentation by thinking like a **web developer building a 1920×1080 web page**.
+Generate a Figma presentation by thinking like a **frontend developer building a 1920×1080 website**.
 
-Each slide = a full-screen web section. Design tokens = CSS variables. Layout = flexbox/grid thinking.
-Output = a single `.js` file the user pastes into Figma's Developer Console.
+**Pipeline:**
+1. Collect content + tone from user
+2. Build a multi-page HTML/CSS slide website (each slide = 1 full page)
+3. Serve it locally via Python HTTP server
+4. Call `generate_figma_design` for each slide URL → editable Figma frames
+
+**Prerequisites (user must have):**
+- Figma desktop app (not browser)
+- Dev Mode MCP enabled: Figma → Preferences → "Dev Mode MCP Server" ON
+- MCP connected: `claude mcp add --transport sse figma-dev-mode-mcp-server http://127.0.0.1:3845/sse`
 
 ---
 
-## Phase 1: Style Guide Loading
+## Phase 1: Style Loading (Optional)
 
-Check if `./style-guide.json` exists using the Read tool.
+Check if `./style-guide.json` exists in the current working directory.
 
-**If it exists**: Read it and validate it has at minimum `colors.primary`, `typography.heading1`, and `layout.slideWidth`.
+**If it exists**: Read it and extract `colors`, `typography`, `aesthetic.direction`.
+Use these as CSS custom properties for the HTML slides.
 
-**If it does NOT exist**:
-Ask the user (single message):
-```
-No style-guide.json found. You have two options:
-
-1. Extract from a Figma file (recommended):
-   Run: /figma-ppt:extract-style https://www.figma.com/design/YOUR_FILE_ID/...
-   Then re-run /figma-ppt
-
-2. Continue with default styles (clean minimal blue palette, Inter font)
-   Reply: "use defaults"
-```
-Wait for the user's choice before proceeding.
-
-If "use defaults", load the default style from `references/web-design-guidelines.md`.
+**If it does NOT exist**: Silently use the built-in defaults (clean dark palette, Inter font).
+Do NOT ask the user about this — just proceed.
 
 ---
 
 ## Phase 2: Content Collection
 
-Ask the user ALL of these in a single message:
+Ask the user ALL of these in a **single message**:
 
 ```
 Let's build your Figma presentation. Please answer:
@@ -48,15 +43,15 @@ Let's build your Figma presentation. Please answer:
 1. Title and purpose — what is this presentation about and why?
 2. Audience — executives / engineers / customers / students / general
 3. Tone & mood — choose one or describe your own:
-   - formal (professional, structured, authoritative)
-   - minimal (clean, whitespace-heavy, restrained)
-   - bold (high contrast, strong visuals, impactful)
-   - technical (data-dense, precise, engineering aesthetic)
-   - inspirational (aspirational, story-driven, emotional)
-   - playful (approachable, friendly, energetic)
-4. Content — paste your outline, bullet points, data, or describe each section.
-   The more detail you give, the better the slide mapping.
-5. Slide count — how many slides? Or type "auto" and I'll decide.
+   - minimal  (clean, vast whitespace, single accent)
+   - bold     (high contrast, oversized type, color-first)
+   - luxury   (dark + gold/cream, premium feel)
+   - editorial (magazine layout, typography-driven)
+   - technical (data-dense, monospace, engineering aesthetic)
+   - playful  (rounded, friendly, energetic)
+4. Content — paste your outline, bullet points, data, or key messages.
+   (More detail = better slides. Raw notes are fine.)
+5. Slide count — how many? Or type "auto" for me to decide.
 ```
 
 Wait for the full response before proceeding.
@@ -67,117 +62,162 @@ Wait for the full response before proceeding.
 
 ### 3A. Choose Aesthetic Direction
 
-Based on tone + style guide's `aesthetic.direction`, commit to ONE bold direction.
-Reference `references/web-design-guidelines.md` for direction → layout mappings.
+Based on the tone, commit to ONE direction from `references/web-design-guidelines.md`.
 
-CRITICAL (from frontend-design philosophy):
+**Critical rules (never break these):**
 - Choose an EXTREME, not a middle ground
-- "minimal" means *brutally* minimal — vast whitespace, single accent, perfect spacing
-- "bold" means *genuinely* bold — full-bleed color blocks, oversized type, zero decoration
-- NEVER produce generic AI aesthetics: no Inter on white with purple gradients
-- Each presentation should feel uniquely designed for its purpose
+- NEVER: Inter Regular on white with purple gradient
+- NEVER: centered everything with equal visual weight
+- Each presentation must feel specifically designed for its topic and audience
 
-Announce the direction to the user:
+Announce to user (briefly):
 ```
-Aesthetic direction: [DIRECTION]
-Visual concept: [1-2 sentence description of what this will look like]
-Font pairing: [display font] + [body font]
-Color approach: [description]
+Aesthetic: [DIRECTION] — [1-sentence visual concept]
+Palette: [primary color] + [background] + [accent]
+Font: [font choice]
 ```
 
 ### 3B. Map Content to Slide Types
 
-Reference `references/slide-types.md` for the 8 slide types and their web section analogies.
-Reference `references/tone-guide.md` for tone → slide count and density rules.
+Reference `references/slide-types.md` for 8 types: HERO, AGENDA, CONTENT, TWO_COL, STATS, QUOTE, DIVIDER, CLOSING
+Reference `references/tone-guide.md` for density and count rules.
 
 Rules:
-- Always start with `HERO`
-- Include `AGENDA` if 4+ content sections
-- Use `DIVIDER` between major sections (if 6+ slides)
-- Always end with `CLOSING`
-- Distribute bullets/data across `CONTENT`, `TWO_COL`, `STATS`
-- Add `QUOTE` for inspirational/formal tone if a strong quote exists in content
+- Always start with HERO, always end with CLOSING
+- Add AGENDA if 4+ content sections
+- Use DIVIDER between major sections (6+ slides)
+- Use QUOTE for inspirational/formal tone if a strong quote exists
 
-### 3C. Show Slide Plan
+### 3C. Show Slide Plan + Get Approval
 
-Present to user as a numbered outline:
 ```
 Presentation: "[TITLE]" ([N] slides)
-Aesthetic: [DIRECTION] | Audience: [AUDIENCE] | Tone: [TONE]
+Aesthetic: [DIRECTION] | Tone: [TONE] | Audience: [AUDIENCE]
 
- 1. [HERO]     "Product Vision 2025"
-               Subtitle: "Redefining the Developer Workflow"
-               Author: Jane Lee, CTO · Feb 2025
-
- 2. [AGENDA]   "Today's Agenda"
-               Sections: Market Landscape, Our Solution, Roadmap, Team
-
- 3. [DIVIDER]  Section 1: Market Landscape
-
- 4. [STATS]    "$4.2T market · 18% CAGR · 340M potential users"
+ 1. [HERO]     — "Title"
+ 2. [AGENDA]   — sections overview
+ 3. [CONTENT]  — "Key Point 1"
  ...
 
-Does this look right? You can ask for changes — add, remove, or reorder slides.
-Say "yes" or "go" to generate the code.
+Say "yes" or "go" to start building. Or request changes.
 ```
 
-Wait for approval. Apply any requested changes and re-show if needed.
+Wait for approval before Phase 4.
 
 ---
 
-## Phase 4: Write Plans and Generate Code
+## Phase 4: Build HTML Slide Website
 
-After approval:
+After approval, build the slide website using the script:
 
-1. Write `./slides-plan.json` with the full slide structure.
+### Step 4A: Write slides-plan.json
 
-2. Run the generation script:
+Write `./slides-plan.json` with the full slide structure:
+```json
+{
+  "title": "Presentation Title",
+  "aesthetic": "bold",
+  "palette": {
+    "primary": "#0050FF",
+    "background": "#0A0A0A",
+    "surface": "#111111",
+    "accent": "#FF3B00",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "#888888"
+  },
+  "fonts": {
+    "display": "Space Grotesk",
+    "body": "Space Grotesk"
+  },
+  "slides": [
+    {
+      "type": "HERO",
+      "content": {
+        "title": "...",
+        "subtitle": "...",
+        "author": "...",
+        "date": "..."
+      }
+    }
+  ]
+}
+```
+
+### Step 4B: Run the HTML builder
+
 ```bash
-python skills/figma-ppt/scripts/generate.py \
-  --style-guide ./style-guide.json \
+python skills/figma-ppt/scripts/build-slides.py \
   --slides-plan ./slides-plan.json \
-  --output "./figma-slides-$(date +%Y%m%d-%H%M%S).js" \
-  --templates-dir ./templates
+  --output-dir ./slide-output
 ```
 
-If no style-guide.json (using defaults), add `--use-defaults` flag.
+This creates:
+```
+slide-output/
+  index.html          ← slide navigation page
+  slides/
+    01-hero.html
+    02-agenda.html
+    03-content.html
+    ...
+  assets/
+    styles.css
+```
+
+### Step 4C: Verify the output
+
+```bash
+python -m http.server 7890 --directory ./slide-output &
+```
+
+Check that `http://localhost:7890/slides/01-hero.html` loads correctly.
 
 ---
 
-## Phase 5: Deliver Results
+## Phase 5: Capture to Figma via generate_figma_design
 
-Report to the user:
+For each slide in order, call the Figma MCP to capture it as an editable frame.
+
+**IMPORTANT**: Call `generate_figma_design` for each slide URL in sequence.
+Wait for each call to complete before proceeding to the next.
+
+The tool will:
+1. Open the URL in a browser
+2. Capture the rendered 1920×1080 page
+3. Convert it to an editable Figma frame on the canvas
+
+After all slides are captured, kill the local server:
+```bash
+kill $(lsof -t -i:7890) 2>/dev/null || true
+```
+
+---
+
+## Phase 6: Report Results
 
 ```
-Your Figma presentation is ready!
+✅ Your presentation is now in Figma!
 
-FILE: ./figma-slides-[TIMESTAMP].js ([SIZE]KB, [N] slides)
-AESTHETIC: [DIRECTION] — [brief description]
+[N] editable frames have been created on your canvas.
 
-HOW TO CREATE IN FIGMA:
-1. Open Figma desktop app (required — browser won't work)
-2. Open the file where you want the slides
-3. Menu: Plugins → Development → Open Console
-   (Mac: Option+Cmd+I  |  Windows: Alt+Ctrl+I)
-4. Open the generated .js file, select all (Cmd/Ctrl+A), copy
-5. Click in the Figma console, paste (Cmd/Ctrl+V), press Enter
-6. Wait for: "Created [N] slides on page '[TITLE]'"
+SLIDES CREATED:
+  1. HERO     — "[Title]"
+  2. AGENDA   — "[Agenda heading]"
+  ...
 
-RESULT:
-- A new Figma page named "[TITLE]" is created
-- [N] frames at 1920×1080, laid out horizontally
-- Zoom to fit: Cmd/Ctrl+Shift+H
+NEXT STEPS IN FIGMA:
+  • Select all frames → Cmd/Ctrl+Shift+H to zoom fit
+  • Use Prototype mode (F key) to present
+  • Frames are fully editable — text, colors, shapes
 
-TIPS:
-- Select all frames and export as PDF for sharing
-- Use Figma Prototype mode to present (F key)
-- Fonts used: [FONT_NAMES] — install from Google Fonts if missing
+FONTS USED: [font names]
+If fonts appear substituted, install them from fonts.google.com
 ```
 
 ---
 
 ## Reference Files
 
-- [references/slide-types.md](references/slide-types.md) — 8 slide type definitions with content fields
-- [references/web-design-guidelines.md](references/web-design-guidelines.md) — Aesthetic directions, layout principles, design token usage
-- [references/tone-guide.md](references/tone-guide.md) — Tone → aesthetic direction → slide count mappings
+- [references/slide-types.md](references/slide-types.md) — 8 slide types with content fields
+- [references/web-design-guidelines.md](references/web-design-guidelines.md) — Aesthetic directions, layout, anti-patterns
+- [references/tone-guide.md](references/tone-guide.md) — Tone → aesthetic + slide count mappings

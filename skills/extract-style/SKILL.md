@@ -1,8 +1,7 @@
 ---
 name: extract-style
-description: Extract design tokens from an existing Figma file and save as style-guide.json. Use when the user provides a Figma URL and wants to analyze the design system, capture colors/typography/layout tokens, or prepare a style guide before generating a presentation. Triggered by phrases like "extract style", "analyze Figma file", "capture design tokens", "get style guide from URL".
-disable-model-invocation: true
-allowed-tools: Read, Write, Bash
+description: Extract design tokens (colors, typography, layout) from a Figma file and save as style-guide.json. Use for "extract Figma styles", "analyze Figma design", "get design tokens", "스타일 추출", "피그마 디자인 분석". Requires Figma Dev Mode MCP connected.
+allowed-tools: Read, Write, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_design_context, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_variable_defs, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_metadata, mcp__b2ee9eae-c125-457f-bf25-a85d11b3e1a2__get_screenshot
 argument-hint: <figma-file-url>
 ---
 

@@ -1,91 +1,81 @@
-# figma-ppt — Claude Code Plugin
+# figma-ppt — Claude Code Skill
 
-> Generate Figma presentation slides like building a **1920×1080 web page**.
+> Generate Figma presentation slides by building a real **1920×1080 HTML/CSS website** and capturing it into **editable Figma frames** via Claude Code + Figma MCP.
 
-Each slide is a full-screen web section (hero, content, stats, quote...).
-Design tokens flow from your Figma file → `style-guide.json` → beautifully styled slides.
+No API keys. No Figma plugin to install. Just Claude Code.
 
 ---
 
 ## How It Works
 
 ```
-Your Figma design file
-        ↓  (Figma MCP)
-  style-guide.json         ← design tokens extracted
-        ↓
-  Content + Tone input
+Your content + tone
         ↓  (Claude plans)
   slides-plan.json         ← structured slide plan
-        ↓  (generate.py)
-  figma-slides.js          ← paste into Figma Console
-        ↓
-  🎨 Figma presentation    ← 1920×1080 frames created
+
+        ↓  (build-slides.py)
+  slide-output/            ← real HTML/CSS website
+    slides/01-hero.html
+    slides/02-agenda.html
+    ...
+
+        ↓  (Python HTTP server)
+  localhost:7890           ← slides served locally
+
+        ↓  (generate_figma_design × N)
+  🎨 Figma canvas          ← editable frames, 1920×1080
 ```
+
+Each slide is a real webpage — styled with CSS, using Google Fonts, full design system.
+`generate_figma_design` captures each page and converts it to an **editable Figma frame**.
 
 ---
 
-## Installation
+## Prerequisites
 
-### 1. Install this plugin
+1. **Figma desktop app** (browser version won't work)
 
-```bash
-claude plugin install https://github.com/your-username/figma-ppt-plugin
-```
+2. **Enable Dev Mode MCP** in Figma:
+   Figma → Preferences → ✅ Dev Mode MCP Server
 
-### 2. Install recommended design skills (optional but recommended)
+3. **Connect to Claude Code** (run once):
+   ```bash
+   claude mcp add --transport sse figma-dev-mode-mcp-server http://127.0.0.1:3845/sse
+   ```
 
-These skills enhance the aesthetic quality of generated presentations:
+4. **Install this skill** in Claude Code:
+   ```bash
+   claude plugin install https://github.com/your-username/figma-ppt-plugin
+   ```
 
-```bash
-npx skills add https://github.com/anthropics/skills --skill frontend-design
-npx skills add https://github.com/vercel-labs/agent-skills --skill web-design-guidelines
-npx skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill --skill ui-ux-pro-max
-```
-
-### 3. Ensure Figma MCP is connected
-
-The `extract-style` skill uses Figma MCP tools (`get_design_context`, `get_variable_defs`, etc.).
-Make sure the Figma MCP server is running and connected in Claude Code.
+5. **Python 3.8+** (for the build script)
 
 ---
 
 ## Usage
 
-### Step 1: Extract your design style (one-time setup)
-
-```
-/figma-ppt:extract-style https://www.figma.com/design/YOUR_FILE_ID/Your-Design
-```
-
-This reads your Figma file and creates `./style-guide.json` with:
-- Color palette (primary, secondary, background, text colors)
-- Typography scale (heading1–3, body, caption, display)
-- Layout system (padding, gaps, corner radius)
-- Aesthetic direction (minimal, bold, luxury, technical, etc.)
-
-### Step 2: Generate a presentation
+### Generate a presentation
 
 ```
 /figma-ppt
 ```
 
-Claude will ask:
-1. Presentation title and purpose
-2. Target audience
-3. Tone & mood (formal / minimal / bold / technical / inspirational / casual)
-4. Content (paste your outline, bullet points, data)
-5. Slide count (or "auto")
+Claude will ask 5 questions in one message, then:
+1. Proposes a slide plan (type + headline per slide)
+2. You approve or request changes
+3. Claude builds the HTML website locally
+4. Claude captures each slide into Figma via `generate_figma_design`
+5. Editable frames appear on your Figma canvas
 
-Then Claude proposes a slide plan → you approve → `.js` file is generated.
+### Extract your brand style first (optional)
 
-### Step 3: Run in Figma
+If you have an existing Figma design file:
 
-1. Open Figma desktop app
-2. **Plugins → Development → Open Console** (Mac: `Option+Cmd+I`)
-3. Open the generated `.js` file, select all, copy
-4. Paste into Figma console and press `Enter`
-5. A new page with your slides is created automatically
+```
+/figma-ppt:extract-style https://www.figma.com/design/YOUR_FILE_ID/...
+```
+
+This creates `./style-guide.json` and uses your exact brand colors, fonts, and aesthetic direction in the slides.
 
 ---
 
@@ -93,14 +83,29 @@ Then Claude proposes a slide plan → you approve → `.js` file is generated.
 
 | Type | Web Analogy | Description |
 |------|-------------|-------------|
-| `HERO` | Landing hero section | Opening slide with title, subtitle, author |
+| `HERO` | Landing hero | Opening slide — title, subtitle, author |
 | `AGENDA` | Table of contents | Numbered agenda items |
-| `CONTENT` | Article section | Heading + body + bullets + optional image area |
+| `CONTENT` | Article section | Heading + bullets + optional image area |
 | `TWO_COL` | Feature comparison | Two-column cards for side-by-side content |
-| `STATS` | KPI dashboard | 2-4 cards with big numbers, trends, labels |
+| `STATS` | KPI dashboard | 2–4 cards with big numbers, trends, labels |
 | `QUOTE` | Full-page testimonial | Full-bleed quote with attribution |
 | `DIVIDER` | Chapter break | Section separator with large number watermark |
 | `CLOSING` | Footer / CTA | Thank you, key takeaways, contact info |
+
+---
+
+## Aesthetic Directions
+
+Each direction is treated as a **web design system** applied across all slides:
+
+| Direction | Concept | Best for |
+|-----------|---------|----------|
+| `minimal` | Vast whitespace, single accent, perfect spacing | Executive decks, investor pitches |
+| `bold` | Full-bleed color blocks, oversized type | Product launches, all-hands |
+| `luxury` | Dark palette, gold/cream, refined typography | Premium brand, board presentations |
+| `editorial` | Magazine layouts, typography as design | Creative agencies, storytelling |
+| `technical` | Data-dense, monospace, engineering aesthetic | Engineering reviews, data science |
+| `playful` | Rounded, bright, energetic | Customer-facing, education |
 
 ---
 
@@ -109,34 +114,23 @@ Then Claude proposes a slide plan → you approve → `.js` file is generated.
 ```
 figma-ppt-plugin/
 ├── .claude-plugin/
-│   └── plugin.json               ← Plugin manifest
+│   └── plugin.json                ← Skill manifest
 │
 ├── skills/
 │   ├── extract-style/
-│   │   ├── SKILL.md              ← Style extraction skill
+│   │   ├── SKILL.md               ← Style extraction from Figma MCP
 │   │   └── references/
 │   │       └── figma-token-guide.md
 │   │
 │   └── figma-ppt/
-│       ├── SKILL.md              ← Main generation skill
+│       ├── SKILL.md               ← Main skill: content → HTML → Figma
 │       ├── references/
-│       │   ├── slide-types.md
-│       │   ├── web-design-guidelines.md
-│       │   └── tone-guide.md
+│       │   ├── slide-types.md     ← 8 slide type definitions
+│       │   ├── web-design-guidelines.md ← Aesthetic directions
+│       │   └── tone-guide.md      ← Tone → aesthetic + density rules
 │       └── scripts/
-│           └── generate.py       ← JS assembler
-│
-├── templates/
-│   ├── base.js.template          ← Figma Plugin harness + helpers
-│   └── slides/
-│       ├── 01_hero.js.template
-│       ├── 02_agenda.js.template
-│       ├── 03_content.js.template
-│       ├── 04_two_col.js.template
-│       ├── 05_stats.js.template
-│       ├── 06_quote.js.template
-│       ├── 07_divider.js.template
-│       └── 08_closing.js.template
+│           ├── build-slides.py    ← HTML/CSS website generator
+│           └── serve-and-capture.py ← Local server + capture helper
 │
 ├── schemas/
 │   └── style-guide.schema.json
@@ -150,37 +144,13 @@ figma-ppt-plugin/
 
 ---
 
-## Aesthetic Directions
-
-The plugin treats slides as **web sections with bold aesthetic intent**:
-
-| Direction | Concept | Best for |
-|-----------|---------|----------|
-| `minimal` | Brutally restrained — vast whitespace, single accent | Executive decks, investor pitches |
-| `bold` | High contrast, full-bleed color, oversized type | Product launches, all-hands |
-| `luxury` | Dark palette, gold/cream accents, refined typography | Premium brand, board presentations |
-| `editorial` | Magazine layouts, typography as design | Creative agencies, storytelling |
-| `technical` | Data-dense, monospace, precise | Engineering reviews, data science |
-| `playful` | Rounded, bright, energetic | Customer-facing, education |
-
----
-
-## Requirements
-
-- **Claude Code** with Figma MCP connected
-- **Python 3.8+** (for `generate.py`)
-- **Figma desktop app** (console access required for execution)
-- Fonts used must be installed in Figma (Pretendard, Inter, etc.)
-
----
-
 ## Tips
 
-- Run `extract-style` once per Figma file — reuse `style-guide.json` for multiple presentations
-- For Korean presentations, the plugin auto-detects Pretendard font
-- Generated `.js` files are self-contained — share with teammates to regenerate slides
-- Slides are 1920×1080 (16:9 Full HD) — optimal for presentations and PDF export
-- Use **Figma Prototype mode** (press `F`) to present directly
+- **No style-guide.json?** No problem — the skill uses a clean built-in default palette.
+- **Korean presentations?** Use `Pretendard` as display font — it covers all Korean + Latin weights.
+- **Fonts missing in Figma?** Install from [fonts.google.com](https://fonts.google.com) — frames are editable so you can swap fonts.
+- **Re-run anytime** — each run creates a fresh `slide-output/` folder.
+- **Slides are 1920×1080** (Full HD 16:9) — perfect for Figma Prototype mode and PDF export.
 
 ---
 
