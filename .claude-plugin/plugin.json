@@ -5,8 +5,8 @@
     "name": "daehyeonxyz",
     "url": "https://github.com/daehyeonxyz"
   },
-  "homepage": "https://github.com/daehyeonxyz/figma-presentation",
-  "repository": "https://github.com/daehyeonxyz/figma-presentation",
+  "homepage": "https://github.com/daehyeonxyz/figma-ppt-plugin",
+  "repository": "https://github.com/daehyeonxyz/figma-ppt-plugin",
   "license": "MIT",
   "keywords": ["figma", "presentation", "slides", "frontend", "design-tokens", "MCP"],
   "recommendedPlugins": [
