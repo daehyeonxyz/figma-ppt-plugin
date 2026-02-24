@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "daehyeonxyz-figma-ppt-plugin",
+  "description": "Figma presentation generator for Claude Code. Build 1920×1080 HTML slides and capture them as editable Figma frames via Dev Mode MCP.",
+  "owner": {
+    "name": "daehyeonxyz",
+    "url": "https://github.com/daehyeonxyz"
+  },
+  "plugins": [
+    {
+      "name": "figma-ppt",
+      "description": "Generate Figma presentation slides by building a real 1920×1080 HTML/CSS website and capturing it into editable Figma frames via Claude Code + Figma Dev Mode MCP. No API key needed.",
+      "author": {
+        "name": "daehyeonxyz",
+        "url": "https://github.com/daehyeonxyz"
+      },
+      "source": "./plugins/figma-ppt",
+      "category": "design",
+      "homepage": "https://github.com/daehyeonxyz/figma-ppt-plugin"
+    }
+  ]
+}
